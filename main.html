@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Node.js</title>
+		<link rel='stylesheet'>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+		<script type="text/javascript" src="init.js"></script>
+		<style type="text/css">
+			.sampleDiv {
+				position: absolute;
+				width: 300px;
+				height: 150px;
+				cursor: pointer;
+			}
+			.hiddenDiv {
+				display: block;
+			}
+		</style>
+	</head>
+	<body>
+		<!-- Sync div template -->
+		<script type="text/template" id="syncDivTemplate">
+			<div onclick="restart({0})" class="sampleDiv" id="div-{0}">
+				<h2>Item #{0}</h2>
+				<p>Number of Likes : <b id="content_area-{0}">Loading...</b></p>
+				<p>Timestamp: <b id="time_area-{0}">Synching...</b></p>
+				<script type="text/javascript">
+					var hostUrl_{0} = "http://127.0.0.1:8888";
+					var uid_{0} = -1;
+					function get_uid_{0}() {
+						$.get(hostUrl_{0} + '/init?id={0}', function(json) {
+							data = JSON.parse(json)
+							uid_{0} = data['uid'];
+						});
+					}
+					get_uid_{0}();
+					function load_content_{0}() {
+						$.get(hostUrl_{0} + '/data?uid=' + uid_{0}, function(json) {
+							data = JSON.parse(json);
+							$('#content_area-{0}').html(data['likes']);
+							$('#time_area-{0}').html(data['time']);
+							$('#div-{0}').css('background-color', data['color']);
+							setTimeout(load_content_{0}, 800);
+						});
+					}
+					setTimeout(load_content_{0}, 500);
+				</script>
+			</div>
+		</script>
+	</body>
+</html>
+			
