@@ -1,0 +1,17 @@
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  	var fps = 0;
+  	var socket = io.connect('http://127.0.0.1:8888');
+  	socket.on('news', function (data) {
+  		fps += 1;
+    	socket.emit('reply', {'no': data.no + 1});
+  	});
+
+	function stats() {
+    	console.log('#fps', fps, new Date().toLocaleTimeString());
+    	fps = 0;
+    	setTimeout(stats, 2000);
+	}
+    stats();
+</script>

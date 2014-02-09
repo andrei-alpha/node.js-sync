@@ -36,11 +36,12 @@
 					get_uid_{0}();
 					function load_content_{0}() {
 						$.get(hostUrl_{0} + '/data?uid=' + uid_{0}, function(json) {
-							data = JSON.parse(json);
+							try { data = JSON.parse(json); }
+							catch(e) { get_uid_{0}(); console.log('#error', e); }
 							$('#content_area-{0}').html(data['likes']);
 							$('#time_area-{0}').html(data['time']);
 							$('#div-{0}').css('background-color', data['color']);
-							setTimeout(load_content_{0}, 800);
+							setTimeout(load_content_{0}, 2000);
 						});
 					}
 					setTimeout(load_content_{0}, 500);

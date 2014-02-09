@@ -10,22 +10,36 @@ var express = require('express')
 var count = 0;
 var color = "#";
 var port = 8000 + Math.round(Math.random() * 1000);
+var timestamp = "";
 
 function newColor() {
-    var letters = '0123456789ABCDEF'.split('');
+    var date = new Date();
+    //console.log('#newColor', date.getMilliseconds());
+    
     color = '#';
-    for (var i = 0; i < 6; i++ ) {
-        color += letters[Math.round(Math.random() * 15)];
+    var letters = '0123456789ABCDEF'.split('');
+    for (var i = 0; i < 6; ++i) {
+        var code = Math.round(date.getSeconds() * i * Math.sin(date.getTime())) % 16;
+        if (code < 0) code *= -1;
+        color = color + letters[code];
     }
+    console.log(color);
+
+    timestamp = date.getHours() + ":" + date.getMinutes() + ":" 
+    	+ date.getSeconds() + ":" + date.getMilliseconds();
+   	var end = new Date().getMilliseconds();
+    setTimeout(newColor, 1000 - end % 1000);
 }
 
 function send_data() {
 	request.post(
     	'http://127.0.0.1:8888/newNode',
     	{ form: { 'url': 'http://localhost:' + port} },
-    	function (error, response, body) {
-        	if (!error && response.statusCode == 200)
-            	;//console.log('let router know i`m alive')
+    	function (error, res, body) {
+        	if (!error && res.statusCode == 200) {
+            	var packet = JSON.parse(body);
+            	setTimeout(newColor, 2000 - packet.time % 2000 - 20);
+        	}
         	else {
         		;//console.log(error);
         	}
@@ -55,13 +69,10 @@ app.use(express.static( __dirname + '\\static'));
 app.use(express.bodyParser());
 
 app.get('/getColor', function(req, res) {
-	var date = new Date();
 	count = count + 1;
 	//console.log('#request', 'getColor', date.getSeconds() );
 
-	var dateStr = date.getHours() + ":" + date.getMinutes() + ":" 
-    	+ date.getSeconds() + ":" + date.getMilliseconds();
-    var packet = {'likes': 'xxx', 'time': dateStr, 'color': color};
+    var packet = {'likes': 'xxx', 'time': timestamp, 'color': color};
 	res.end( JSON.stringify(packet) );
 });
 app.get('/*', function(req, res) {
@@ -69,9 +80,8 @@ app.get('/*', function(req, res) {
 });
 app.listen(port)
 
-setInterval(send_data, 4000);
-setInterval(newColor, 1000);
-setInterval(stats, 20000);
 send_data();
+setInterval(send_data, 4000);
+setInterval(stats, 20000);
 
 console.log('Server running at http://127.0.0.1:' + port + '/');

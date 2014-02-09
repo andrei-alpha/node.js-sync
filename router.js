@@ -4,11 +4,12 @@ var events = require('events');
 var http = require('http');
 var path = require('path');
 var filesys = require('fs');
-var request = require('request')
+var request = require('request');
 var express = require('express');
 
 var nodes = [];
 var emitters = [];
+var userTimeouts = [], requestTimeouts = [], requestQueue = [];
 var nodesLock = false;
 
 var app = express();
@@ -27,8 +28,19 @@ function load_file(my_path, res) {
 	});
 }
 
-function get_data(id, uid) {
-	request.get(nodes[id] + '/getColor',
+function serve() {
+	console.log(requestQueue);
+
+	while (requestQueue.length) {		
+		var nodeid = requestQueue[0][0];
+		var uid = requestQueue[0][1];
+		get_data(nodeid, uid);
+		requestQueue.shift();
+	}
+}
+
+function get_data(nodeid, uid, pos) {
+	request.get(nodes[nodeid] + '/getColor',
     	function (error, res, body) {
     		if (!error && res.statusCode == 200) {
     			var packet = JSON.parse(body);
@@ -36,9 +48,8 @@ function get_data(id, uid) {
     		}
         	else {
         		nodesLock = true;
-    			nodes[id] = nodes[ nodes.length - 1 ];
+    			nodes[nodeid] = nodes[ nodes.length - 1 ];
     			nodes.pop();
-    			console.log( JSON.stringify(nodes) );
     			nodesLock = false;
         	}
     	}
@@ -47,12 +58,13 @@ function get_data(id, uid) {
 
 
 function timeoutRequest(uid) {
-	emitters[uid].emit("data", {'color': 'white'});
-	console.log('client', uid, 'is dead');
+	if (emitters[uid])
+		emitters[uid].emit("data", {'color': 'white'});
 }
 
 function timeoutUser(uid) {
 	emitters[uid] = null;
+	console.log('#user ', uid, 'died')
 }
 
 app.get('/init', function(req, res) {
@@ -68,22 +80,20 @@ app.get('/data', function(req, res) {
 		return;
 	}
 
-	var node = Math.round(Math.random() * (nodes.length - 1));
-	packet = get_data(node, uid);
+	//console.log('got req from', uid);
+	var node = Math.floor(Math.random() * nodes.length);
+	requestQueue.push([node, uid]);
 	
-	clearTimeout(function() {
-		timeoutRequest(uid);
-	});
-	//setTimeout(function() {
+	//clearTimeout(requestTimeouts[uid]);
+	//requestTimeouts[uid] = setTimeout(function() {
 	//	timeoutRequest(uid);
 	//}, 2000);
-	clearTimeout(function() {
-		timeoutUser(uid);
-	});
-	//setTimeout(function() {
+	//clearTimeout(userTimeouts[uid]);
+	//userTimeouts[uid] = setTimeout(function() {
 	//	timeoutUser(uid);
-	//}, 4000);
-	var listner = emitters[uid].once("data", function(data) {
+	//}, 5000);
+	
+	emitters[uid].once("data", function(data) {
 		res.end( JSON.stringify(data) );
 	});
 
@@ -91,16 +101,27 @@ app.get('/data', function(req, res) {
 app.post('/newNode', function(req, res) {
 	node = req.body.url;
 	if (nodes.indexOf(node) != -1) {
+		res.status(304);
 		res.end('ok');
 		return;
 	}
 	nodes.push(node);
 	console.log( JSON.stringify(nodes) )
-	res.end('ok')
+	data = {'time': new Date().getTime()};
+	res.end( JSON.stringify(data) );
 });
 app.get('/*', function(req, res) {
 	load_file(req.path, res);
 });
 app.listen(8888);
+setInterval(serve, 1000);
+
+/*
+io.sockets.on('connection', function (socket) {
+  socket.emit('news', { hello: 'world' });
+  socket.on('my other event', function (data) {
+    console.log(data);
+  });
+});*/
 
 console.log('Server running at http://127.0.0.1:8888/');

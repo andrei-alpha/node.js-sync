@@ -4,7 +4,7 @@ $(document).ready(function() {
 	for (var j = 0; j < 5; ++j) {
 		addSyncDiv(i * 5 + j, i * 150, j * 300);
 	}
-})
+});
 
 function addSyncDiv(id, top, left) {
 	var divTemplate = $('#syncDivTemplate').html();
